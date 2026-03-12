@@ -1,33 +1,35 @@
-# 🛡️ citeweb | AI Citation Auditor
+# 🛡️ citeweb.ai | AI Citation Auditor
 
 **Developer:** Mohsin  
-**Project Context:** Personal Student Software Project  
 **Architecture:** Agent-Oriented Software Engineering (Modular Monolith)  
 **Core Constraint:** Core i5 8th Gen, 8GB RAM, No Dedicated GPU
 
 ---
 
-## 📅 Sprint Log: Day 0 - Project Architecture & Environment Initialization
+## 📅 Sprint Log: Day 1 - Deterministic Ingestion & UI Abstraction
 
 ### 🎯 Objective
 
-Establish a secure, hardware-optimized workspace and design the foundational directory structure required for a multi-agent AI citation stress-testing environment.
+Build a robust, memory-safe data ingestion engine to extract clean semantic text from unstructured websites and visualize the results through a user-friendly dashboard.
 
-### 🏗️ Architectural Setup (Modular Monolith)
+### 🏗️ Module Development (`modules/scrapers/`)
 
-- **Separation of Concerns:** Deployed a strict folder hierarchy to decouple the Streamlit UI, business logic, and data ingestion.
-  - `modules/`: Deterministic background workers (`scrapers/`, `memory/`, `engine/`).
-  - `services/`: Orchestration layer to manage data flow and prevent monolithic UI coupling.
-  - `agents/`: Isolated environment for Gemini API probabilistic reasoning (Teacher, Judge, Consultant).
-  - `ui/` & `docs/`: Frontend componentization and project documentation.
+- **Abstract Base Class (ABC):** Engineered `base.py` to enforce a strict contract for all future scrapers.
+- **Static Ingestion Engine:** Developed `static_scraper.py` using `BeautifulSoup4`. Successfully bypassed institutional SSL handshakes and implemented heuristic link extraction to map website navigation.
+- **Token Waste Metric:** Implemented the mathematical algorithm: `(1 - (Clean/Raw)) * 100`. Tested on `pakjournals.com`, identifying a **90.9% waste ratio**, proving the necessity of semantic filtering for AI citations.
 
-### ⚙️ Environment & Dependency Management
+### orchestration Layer (`services/`)
 
-- **VENV Initialization:** Built a clean, localized Python virtual environment (`venv`) mapped to the new project directory.
-- **Compiler Bypass (Hardware Optimization):** Encountered a fatal `Microsoft Visual C++ 14.0` build error when pip attempted to compile `chroma-hnswlib` from scratch.
-- **Resolution:** Implemented Dependency Unpinning in `requirements.txt` to force pip to resolve and fetch pre-compiled Windows binaries (`.whl`), successfully bypassing the 6GB compiler requirement and protecting the Core i5 environment.
+- **Ingestion Service:** Created `ingestion_service.py` to decouple the UI from the backend workers. This prevents monolithic coupling and ensures the application remains scalable.
 
-### 🔒 Software Configuration Management (SCM)
+### 🖥️ User Interface (`ui/` & `app.py`)
 
-- Engineered a strict `.gitignore` to prevent repository bloat (ignoring the heavy local ChromaDB vector space, `.env` API keys, and `__pycache__`).
-- Adopted an ephemeral `notes.md` logging strategy backed by Git commit history for daily sprint tracking.
+- **Componentization:** Built `metrics_view.py` to isolate the visual logic.
+- **UX Abstraction:** Replaced technical jargon with user-centric terms like "Understandable Text" and "Code Clutter."
+- **Visual Feedback:** Integrated a native Streamlit progress bar to act as a hardware-safe "Clutter Gauge."
+- **Immutable UI:** Set the Preview Area to `disabled=True` to prevent accidental data modification, ensuring citation integrity.
+
+### 🔒 Hardware & V&V Verification
+
+- **RAM Protection:** Implemented strict character slicing (`[:1000]`) on all UI text-area components to prevent 8GB RAM exhaustion.
+- **State Management:** Resolved `KeyError` widget crashes by implementing explicit `session_state` keys for all interactive components.

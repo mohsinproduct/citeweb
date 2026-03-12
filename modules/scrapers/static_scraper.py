@@ -1,0 +1,86 @@
+# File: modules/scrapers/static_scraper.py
+import requests
+from bs4 import BeautifulSoup
+from modules.scrapers.base import BaseScraper
+import urllib3
+from urllib.parse import urljoin, urlparse
+
+# Security Bypass: Academic and legacy sites often have misconfigured SSL certs.
+# We suppress the warning to ensure uninterrupted automated auditing.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+class CitewebScraper(BaseScraper):
+    def __init__(self):
+        # We spoof our identity to prevent basic bot-blocking firewalls from dropping our requests.
+        self.headers = {'User-Agent': 'citeweb-auditor/1.0'}
+
+    def calculate_waste(self, raw: int, clean: int) -> float:
+        """Calculates Token Waste: The percentage of characters that are NOT human-readable text."""
+        if raw == 0: return 0.0
+        return round((1 - (clean / raw)) * 100, 2)
+
+    def extract_nav_links(self, soup: BeautifulSoup, base_url: str, limit: int = 3) -> list:
+        """
+        Heuristic Routing: Modern sites hide navigation outside of standard <nav> tags. 
+        This dynamically maps sub-pages to simulate how an AI spider would traverse the site.
+        """
+        nav_links = set()
+        domain = urlparse(base_url).netloc
+        normalized_base = base_url.rstrip('/')
+
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            
+            # Filter out Javascript triggers and email links
+            if not href or href.startswith(('javascript:', 'mailto:', 'tel:')):
+                continue
+                
+            full_url = urljoin(base_url, href)
+            parsed_url = urlparse(full_url)
+            
+            # Constraint: Stay within the target domain and avoid infinite scroll anchors
+            if parsed_url.netloc == domain:
+                clean_url = full_url.split('#')[0].rstrip('/')
+                
+                if clean_url != normalized_base and clean_url not in nav_links:
+                    nav_links.add(clean_url)
+                    
+            # Hardware Constraint: Limit RAM usage by strictly capping route extraction
+            if len(nav_links) >= limit:
+                break
+                
+        return list(nav_links)
+
+    def scrape(self, url: str) -> dict:
+        """Executes the ingestion pipeline and returns the semantic payload."""
+        try:
+            # Network request with a strict 10-second timeout to prevent thread hanging
+            response = requests.get(url, headers=self.headers, timeout=10, verify=False)
+            response.raise_for_status()
+            
+            raw_content = response.text
+            soup = BeautifulSoup(raw_content, 'html.parser')
+
+            # Extract routing data BEFORE destroying the DOM structure
+            sub_urls = self.extract_nav_links(soup, url, limit=3)
+
+            # Data Cleansing: Surgically remove noise vectors (scripts, styles, headers, footers)
+            for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+                element.decompose()
+
+            # Target only high-value semantic nodes relevant for AI Citation
+            content_tags = soup.find_all(['h1', 'h2', 'h3', 'p', 'li'])
+            
+            # List Comprehension: Strip whitespace and filter out micro-strings (< 20 chars)
+            clean_text = "\n".join([t.get_text().strip() for t in content_tags if len(t.get_text()) > 20])
+
+            return {
+                "url": url,
+                "clean_text": clean_text,
+                "raw_size": len(raw_content),
+                "clean_size": len(clean_text),
+                "waste_score": self.calculate_waste(len(raw_content), len(clean_text)),
+                "sub_urls": sub_urls
+            }
+        except Exception as e:
+            return {"error": str(e)}

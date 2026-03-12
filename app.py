@@ -1,7 +1,9 @@
 # File: app.py
 import streamlit as st
 from services.ingestion_service import IngestionService
-from ui.metrics_view import render_ingestion_metrics
+from services.memory_service import MemoryService
+# Updated Import: Only bringing in the consolidated report function
+from ui.metrics_view import render_full_audit_report
 
 # 1. Page Configuration
 st.set_page_config(page_title="citeweb.ai | AI Citation Auditor", layout="wide")
@@ -15,25 +17,40 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. User Input (FIXED: Added explicit memory key)
+# 3. User Input
 target_url = st.text_input(
     "Enter Website URL to Audit:", 
-    placeholder="https://youdomain.here",
-    key="url_input_widget" # Explicit State Tracker
+    placeholder="https://example.com",
+    key="url_input_widget"
 )
 
-# 4. Execution Logic (FIXED: Added explicit memory key)
+# 4. Execution Logic
 if st.button("Run Citation Audit", key="run_audit_btn"):
     if target_url:
-        service = IngestionService()
+        ingest_service = IngestionService()
+        memory_service = MemoryService() 
         
-        with st.spinner("Executing Static Ingestion (CPU Safe)..."):
-            data = service.process_url(target_url)
+        # --- PHASE 1: INGESTION ---
+        with st.spinner("Step 1: Analyzing website structure & cleaning clutter..."):
+            data = ingest_service.process_url(target_url)
             
-            if "error" in data:
-                st.error(f"Audit Failed: {data['error']}")
+        if "error" in data:
+            st.error(f"Audit Failed: {data['error']}")
+        else:
+            # --- PHASE 2: MEMORY STORAGE ---
+            with st.spinner("Step 2: Encoding semantic fragments into local memory..."):
+                mem_status = memory_service.store_website_data(
+                    data['clean_text'], 
+                    data['url']
+                )
+            
+            # --- PHASE 3: RENDERING (The Audit View) ---
+            if "error" in mem_status:
+                st.error(f"Memory Storage Failed: {mem_status['error']}")
             else:
-                render_ingestion_metrics(data)
-                st.success("✅ Semantic payload extracted successfully.")
+                # Execution: Call the single consolidated 'Diagnostic Hub'
+                render_full_audit_report(data, mem_status)
+                
+                st.toast("Full Diagnostic Audit Complete!", icon="🛡️")
     else:
         st.warning("Please enter a valid URL.")

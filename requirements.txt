@@ -14,4 +14,5 @@ sentence-transformers
 # 4. Agentic Architecture & Reasoning
 langchain
 langchain-google-genai
+langchain-text-splitters
 python-dotenv

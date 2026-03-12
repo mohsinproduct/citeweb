@@ -52,26 +52,35 @@ class CitewebScraper(BaseScraper):
         return list(nav_links)
 
     def scrape(self, url: str) -> dict:
-        """Executes the ingestion pipeline and returns the semantic payload."""
         try:
-            # Network request with a strict 10-second timeout to prevent thread hanging
             response = requests.get(url, headers=self.headers, timeout=10, verify=False)
             response.raise_for_status()
             
-            raw_content = response.text
-            soup = BeautifulSoup(raw_content, 'html.parser')
-
-            # Extract routing data BEFORE destroying the DOM structure
-            sub_urls = self.extract_nav_links(soup, url, limit=3)
-
-            # Data Cleansing: Surgically remove noise vectors (scripts, styles, headers, footers)
-            for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
-                element.decompose()
-
-            # Target only high-value semantic nodes relevant for AI Citation
-            content_tags = soup.find_all(['h1', 'h2', 'h3', 'p', 'li'])
+            raw_content = response.text 
+            soup = BeautifulSoup(raw_content, 'html.parser') 
             
-            # List Comprehension: Strip whitespace and filter out micro-strings (< 20 chars)
+            # --- NEW: Structural Audit Logic ---
+            audit_log = []
+            
+            # Define what we hate (Noise) vs. what we love (Signal)
+            noise_tags = ['script', 'style', 'nav', 'footer', 'header', 'aside']
+            signal_tags = ['h1', 'h2', 'h3', 'p', 'li']
+
+            # Track the 'Noise' we are removing
+            for tag in noise_tags:
+                found = soup.find_all(tag)
+                if found:
+                    audit_log.append({"tag": f"<{tag}>", "action": "❌ Removed", "reason": "Non-semantic Clutter"})
+                    for el in found: el.decompose()
+
+            # Track the 'Signal' we are keeping
+            content_tags = soup.find_all(signal_tags)
+            for tag_name in signal_tags:
+                if soup.find_all(tag_name):
+                    audit_log.append({"tag": f"<{tag_name}>", "action": "✅ Preserved", "reason": "High Citation Value"})
+
+            # ... (rest of the existing scraping logic)
+
             clean_text = "\n".join([t.get_text().strip() for t in content_tags if len(t.get_text()) > 20])
 
             return {
@@ -80,7 +89,8 @@ class CitewebScraper(BaseScraper):
                 "raw_size": len(raw_content),
                 "clean_size": len(clean_text),
                 "waste_score": self.calculate_waste(len(raw_content), len(clean_text)),
-                "sub_urls": sub_urls
+                "sub_urls": self.extract_nav_links(soup, url, limit=3),
+                "audit_log": audit_log # <--- PASS THIS TO THE UI
             }
         except Exception as e:
             return {"error": str(e)}

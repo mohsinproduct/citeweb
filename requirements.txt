@@ -1,0 +1,17 @@
+# CITEWEB.AI MVP - Flexible Dependencies (Bypassing C++ Build Tools)
+
+# 1. Frontend
+streamlit
+
+# 2. Ingestion & Routing
+beautifulsoup4
+requests
+
+# 3. Vector Memory (CPU Optimized)
+chromadb
+sentence-transformers
+
+# 4. Agentic Architecture & Reasoning
+langchain
+langchain-google-genai
+python-dotenv

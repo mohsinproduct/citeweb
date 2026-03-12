@@ -1,0 +1,22 @@
+# CITEWEB.AI - SCM Ignore Rules
+
+# Environments
+venv/
+env/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Vector Database (CRITICAL: Do not upload to GitHub)
+chroma_db/
+
+# Streamlit UI Cache
+.streamlit/
+
+# OS Generated Files
+.DS_Store
+Thumbs.db

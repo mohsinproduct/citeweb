@@ -1,32 +1,20 @@
-# 🛡️ citeweb.ai | AI Citation Auditor
-
-**Developer:** Mohsin  
-**Architecture:** Agent-Oriented Software Engineering (Modular Monolith)  
-**Core Constraint:** Core i5 8th Gen, 8GB RAM, No Dedicated GPU
-
----
-
-## 📅 Sprint Log: Day 2 - Persistent Memory & Diagnostic Visualization
+## 📅 Sprint Log: Day 3 - Agentic Reasoning & Continuous Pipeline
 
 ### 🎯 Objective
 
-Establish a long-term storage solution for audited website data and provide a professional visual "receipt" of the AI's structural decision-making process.
+Introduce the first active AI agent (The Teacher) to autonomously generate factual test cases based _only_ on the persistent local memory, proving the system can reason about the data it scraped.
 
-### 🏗️ Memory Architecture (`modules/memory/`)
+### 🧠 Agentic Architecture (`agents/teacher_agent.py`)
 
-- [cite_start]**Local Vector Store:** Implemented `vector_store.py` using **ChromaDB**[cite: 14]. Designed to run entirely on the local file system (`/chroma_db`) to ensure data persistence without cloud costs[cite: 15].
-- [cite_start]**CPU-Optimized Embeddings:** Integrated the `all-MiniLM-L6-v2` transformer model (22MB)[cite: 14]. [cite_start]Successfully verified that weights load and run on the Core i5 CPU without spiking 8GB RAM[cite: 12].
-- [cite_start]**Recursive Chunking:** Developed a logic-based text splitter using 500-character chunks with a 50-character overlap to preserve semantic context across fragments[cite: 16].
+- **LLM Integration:** Wired up **Google Gemini 2.5 Flash** for high-speed, zero-cost reasoning.
+- **Deterministic Prompting:** Configured the agent with a low temperature (`0.2`) to enforce strict, factual generation and prevent hallucinations.
+- **Adversarial Test Generation:** Programmed the agent to extract a single 500-character vector (🟩) and generate a specific `[QUESTION]` and `[GROUND TRUTH ANSWER]`.
 
-### 🛠️ Diagnostic Layer & UI Refactor
+### 🛡️ Data Integrity & Multi-Tenant Architecture
 
-- [cite_start]**The "Scalpel" Audit:** Updated `static_scraper.py` to generate a `audit_log`. [cite_start]This tracks exactly which HTML tags were ❌ Removed (clutter) vs. ✅ Preserved (signal)[cite: 34, 35].
-- [cite_start]**Diagnostic Hub:** Refactored `ui/metrics_view.py` into a consolidated dashboard (`render_full_audit_report`)[cite: 41, 46].
-- **Side-by-Side Validation:** Implemented a split-view to show the Structural Audit Log directly next to the AI Semantic Preview for immediate human verification.
-- [cite_start]**Memory Health Map:** Added a visual "Data Integrity Map" (🟩) to prove successful persistence of vector fragments in the local database[cite: 47, 48].
+- **Eliminated Data Bleed:** Discovered and patched a cross-contamination bug where the AI could pull facts from previously audited websites.
+- **Metadata Filtering:** Updated the `AuditService` to strictly filter ChromaDB queries using `where={"source": target_url}`. The system can now safely store and test hundreds of websites in the same local database simultaneously.
 
-### ⚙️ Hardware & V&V Verification
+### ⚙️ UI / UX Optimization (`app.py`)
 
-- [cite_start]**Network Optimization:** Identified that current routing extracts `.pdf` and `.jpg` links but verified they are not ingested into memory to prevent OOM (Out of Memory) errors on 8GB RAM[cite: 30].
-- [cite_start]**State Integrity:** Confirmed that ChromaDB utilizes "lazy loading," only pulling specific indexed search results into active memory during queries[cite: 9].
-- [cite_start]**Persistence Check:** Verified that the `/chroma_db` folder correctly populates on the hard drive after an audit, surviving system restarts[cite: 8, 15].
+- **The 1-Click Pipeline:** Refactored the Streamlit execution logic. The system now seamlessly flows from _Ingestion_ $\rightarrow$ _Memory Storage_ $\rightarrow$ _Agentic Reasoning_ in a single click, without requiring page reloads or secondary user inputs.

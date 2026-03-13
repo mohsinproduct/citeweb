@@ -32,7 +32,7 @@ def render_full_audit_report(data: dict, mem_status: dict):
     with col_left:
         st.write("**The 'Scalpel' Audit Log**")
         if data.get('audit_log'):
-            st.table(data['audit_log']) # Displays the logic of what was removed [cite: 33, 34, 49]
+            st.table(data['audit_log']) 
         else:
             st.info("No structural changes recorded for this domain.")
 
@@ -54,7 +54,7 @@ def render_full_audit_report(data: dict, mem_status: dict):
 
     with tab1:
         col_m1, col_m2 = st.columns([1, 3])
-        col_m1.metric("Stored Fragments", mem_status['chunks_saved']) # Count of 500-char chunks [cite: 16, 19, 47]
+        col_m1.metric("Stored Fragments", mem_status['chunks_saved']) # Count of 500-char chunks 
         
         display_count = min(mem_status['chunks_saved'], 50)
         chunk_icons = " ".join(["🟩" for _ in range(display_count)])
@@ -68,6 +68,28 @@ def render_full_audit_report(data: dict, mem_status: dict):
         if data.get("sub_urls"):
             st.write("Identified connected pages for future AI traversal:")
             for route in data["sub_urls"]:
-                st.code(route, language="markdown") # [cite: 26, 43]
+                st.code(route, language="markdown")
         else:
             st.warning("No standard internal links detected.")
+
+
+    # File: ui/metrics_view.py (Add this to the bottom of the file)
+
+def render_teacher_challenges(challenges: list):
+    """Renders the generated test cases from the Teacher Agent."""
+    st.divider()
+    st.subheader("🎓 Teacher Agent: Synthetic Exam Generated")
+    st.write("The AI has generated the following factual test cases based on 3 random chunks from your local memory:")
+    
+    for idx, challenge in enumerate(challenges):
+        if "error" in challenge:
+            st.error(challenge["error"])
+            continue
+            
+        # Creates a collapsible card for each question
+        with st.expander(f"Test Case #{idx + 1}: {challenge['question']}"):
+            st.write("**✅ Ground Truth Answer:**")
+            st.success(challenge['answer'])
+            
+            st.write("**🟩 Source Memory Fragment:**")
+            st.caption(challenge['source_chunk'])

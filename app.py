@@ -2,8 +2,8 @@
 import streamlit as st
 from services.ingestion_service import IngestionService
 from services.memory_service import MemoryService
-# Updated Import: Only bringing in the consolidated report function
-from ui.metrics_view import render_full_audit_report
+from services.audit_service import AuditService
+from ui.metrics_view import render_full_audit_report, render_teacher_challenges
 
 # 1. Page Configuration
 st.set_page_config(page_title="citeweb.ai | AI Citation Auditor", layout="wide")
@@ -24,11 +24,13 @@ target_url = st.text_input(
     key="url_input_widget"
 )
 
-# 4. Execution Logic
-if st.button("Run Citation Audit", key="run_audit_btn"):
+# 4. Execution Logic (The 1-Click Pipeline)
+if st.button("Run Full Citation Audit", key="run_audit_btn"):
     if target_url:
+        # Initialize all services at the start
         ingest_service = IngestionService()
         memory_service = MemoryService() 
+        audit_service = AuditService()
         
         # --- PHASE 1: INGESTION ---
         with st.spinner("Step 1: Analyzing website structure & cleaning clutter..."):
@@ -44,13 +46,24 @@ if st.button("Run Citation Audit", key="run_audit_btn"):
                     data['url']
                 )
             
-            # --- PHASE 3: RENDERING (The Audit View) ---
+            # --- PHASE 3: RENDERING & AUTOMATED TEACHER ---
             if "error" in mem_status:
                 st.error(f"Memory Storage Failed: {mem_status['error']}")
             else:
-                # Execution: Call the single consolidated 'Diagnostic Hub'
+                # 1. Render the Diagnostic Hub
                 render_full_audit_report(data, mem_status)
+                st.toast("Website Memorized!", icon="🧠")
                 
-                st.toast("Full Diagnostic Audit Complete!", icon="🛡️")
+                # 2. Automatically wake up the Teacher Agent!
+                with st.spinner("Step 3: Teacher Agent is generating factual test cases from memory..."):
+                    challenges = audit_service.generate_audit_batch(
+                        target_url=data['url'],
+                        batch_size=3
+                    )
+
+                    # Render the UI cards right below the hub
+                    render_teacher_challenges(challenges)
+                    st.toast("Synthetic Exam Ready!", icon="🎓")
+                    
     else:
         st.warning("Please enter a valid URL.")

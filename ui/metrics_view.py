@@ -76,10 +76,10 @@ def render_full_audit_report(data: dict, mem_status: dict):
     # File: ui/metrics_view.py (Add this to the bottom of the file)
 
 def render_teacher_challenges(challenges: list):
-    """Renders the generated test cases from the Teacher Agent."""
+    """Renders the generated test cases from the Teacher Agent and retrieved vectors from the Student."""
     st.divider()
-    st.subheader("🎓 Teacher Agent: Synthetic Exam Generated")
-    st.write("The AI has generated the following factual test cases based on 3 random chunks from your local memory:")
+    st.subheader("🎓 Adversarial Audit: Teacher vs. Student")
+    st.write("The Teacher generates a test based on a random memory. The Student searches the vector space for the exact chunks.")
     
     for idx, challenge in enumerate(challenges):
         if "error" in challenge:
@@ -87,9 +87,19 @@ def render_teacher_challenges(challenges: list):
             continue
             
         # Creates a collapsible card for each question
-        with st.expander(f"Test Case #{idx + 1}: {challenge['question']}"):
-            st.write("**✅ Ground Truth Answer:**")
-            st.success(challenge['answer'])
+        with st.expander(f"Test Case #{idx + 1}: {challenge.get('question', 'N/A')}"):
             
-            st.write("**🟩 Source Memory Fragment:**")
-            st.caption(challenge['source_chunk'])
+            st.write("**✅ Teacher's Ground Truth:**")
+            st.success(challenge.get('answer', 'N/A'))
+            
+            # --- NEW: Show what the Student found ---
+            st.write("**🔎 Student's Retrieved Vectors:**")
+            vectors = challenge.get('retrieved_vectors', [])
+            if vectors:
+                for v_idx, vec in enumerate(vectors):
+                    st.info(f"**Match {v_idx+1}:** {vec}")
+            else:
+                st.warning("The Student Agent could not find any mathematically relevant chunks.")
+            
+            st.write("**🟩 Original Source Memory Fragment:**")
+            st.caption(challenge.get('source_chunk', 'N/A'))

@@ -1,20 +1,18 @@
-## 📅 Sprint Log: Day 3 - Agentic Reasoning & Continuous Pipeline
+### The Student Agent (no llm invoked, purely technical retreival code)
 
-### 🎯 Objective
+**Goal:** Prove the website's mathematical embedding is clean enough for an AI to navigate without human intervention.
+**Status:** ✅ Complete & Tested.
 
-Introduce the first active AI agent (The Teacher) to autonomously generate factual test cases based _only_ on the persistent local memory, proving the system can reason about the data it scraped.
+**Architectural Decisions:**
 
-### 🧠 Agentic Architecture (`agents/teacher_agent.py`)
+1. **No LLM Generation for the Student:** We explicitly decided _not_ to use Gemini to generate the Student's answer. Instead, the Student Agent acts purely as a semantic retriever.
+2. **Cosine Similarity Search:** The Student takes the Teacher's synthetic question and maps it against the local ChromaDB vector space to find the top 3 closest chunks in meaning.
+3. **Zero Context Dilution:** In testing, the Student successfully retrieved the exact 100% matching `Original Source Memory Fragment` that the Teacher used to create the question. This proves the `all-MiniLM-L6-v2` embedding model is working perfectly on the local hardware.
 
-- **LLM Integration:** Wired up **Google Gemini 2.5 Flash** for high-speed, zero-cost reasoning.
-- **Deterministic Prompting:** Configured the agent with a low temperature (`0.2`) to enforce strict, factual generation and prevent hallucinations.
-- **Adversarial Test Generation:** Programmed the agent to extract a single 500-character vector (🟩) and generate a specific `[QUESTION]` and `[GROUND TRUTH ANSWER]`.
+**Files Created/Modified:**
 
-### 🛡️ Data Integrity & Multi-Tenant Architecture
+- `agents/student_agent.py`: Created the `search_vector_space` function.
+- `services/audit_service.py`: Wired the Student to receive the Teacher's question and query the database.
+- `ui/metrics_view.py`: Updated the `render_teacher_challenges` UI to display the Student's retrieved evidence (Match 1, 2, 3) alongside the Teacher's Ground Truth.
 
-- **Eliminated Data Bleed:** Discovered and patched a cross-contamination bug where the AI could pull facts from previously audited websites.
-- **Metadata Filtering:** Updated the `AuditService` to strictly filter ChromaDB queries using `where={"source": target_url}`. The system can now safely store and test hundreds of websites in the same local database simultaneously.
-
-### ⚙️ UI / UX Optimization (`app.py`)
-
-- **The 1-Click Pipeline:** Refactored the Streamlit execution logic. The system now seamlessly flows from _Ingestion_ $\rightarrow$ _Memory Storage_ $\rightarrow$ _Agentic Reasoning_ in a single click, without requiring page reloads or secondary user inputs.
+**Next Step:** Build the **Judge Agent**. It will ingest the Question, Ground Truth, and Retrieved Evidence to output a strict binary `[YES/NO]` verdict, fully automating the audit.

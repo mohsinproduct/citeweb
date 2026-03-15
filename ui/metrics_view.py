@@ -72,34 +72,58 @@ def render_full_audit_report(data: dict, mem_status: dict):
         else:
             st.warning("No standard internal links detected.")
 
-
-    # File: ui/metrics_view.py (Add this to the bottom of the file)
-
 def render_teacher_challenges(challenges: list):
-    """Renders the generated test cases from the Teacher Agent and retrieved vectors from the Student."""
+    """Renders the complete audit loop: Teacher's Test, Student's Search, and Judge's Verdict."""
     st.divider()
-    st.subheader("🎓 Adversarial Audit: Teacher vs. Student")
-    st.write("The Teacher generates a test based on a random memory. The Student searches the vector space for the exact chunks.")
+    st.subheader("🎓 Adversarial Audit: The Complete Loop")
+    st.write("Teacher tests memory ➔ Student retrieves vectors ➔ **Judge evaluates citation viability.**")
     
     for idx, challenge in enumerate(challenges):
         if "error" in challenge:
             st.error(challenge["error"])
             continue
             
-        # Creates a collapsible card for each question
-        with st.expander(f"Test Case #{idx + 1}: {challenge.get('question', 'N/A')}"):
+        # Safely get the verdict, defaulting to ERROR if something went completely wrong
+        verdict = challenge.get('verdict', 'ERROR')
+        
+        # 1. Determine the visual theme based on the Judge's 3-state logic
+        if verdict == "YES":
+            icon = "✅"
+            verdict_text = "VERDICT: CITATION VIABLE"
+            expander_state = False # Keep successes collapsed to save vertical space
+        elif verdict == "NO":
+            icon = "❌"
+            verdict_text = "VERDICT: HALLUCINATION RISK (LOW RECALL)"
+            expander_state = True # Auto-expand failures so the user sees the problem immediately
+        else:
+            icon = "⚠️"
+            verdict_text = "VERDICT: AUDIT FAILED (API ERROR)"
+            expander_state = True 
             
-            st.write("**✅ Teacher's Ground Truth:**")
-            st.success(challenge.get('answer', 'N/A'))
+        # 2. Render the interactive UI Card
+        with st.expander(f"{icon} Test Case #{idx + 1}: {challenge.get('question', 'N/A')}", expanded=expander_state):
             
-            # --- NEW: Show what the Student found ---
-            st.write("**🔎 Student's Retrieved Vectors:**")
+            # Show the Verdict Alert
+            if verdict == "YES":
+                st.success(f"**{verdict_text}** - The AI successfully retrieved enough context to cite the source.")
+            elif verdict == "NO":
+                st.error(f"**{verdict_text}** - The semantic structure is too weak. An LLM would likely hallucinate here.")
+            else:
+                st.warning(f"**{verdict_text}** - The Judge Agent could not reach the LLM API to evaluate this chunk. Check your internet connection or API limits.")
+            
+            # Show the Ground Truth
+            st.write("**Teacher's Ground Truth:**")
+            st.info(challenge.get('answer', 'N/A'))
+            
+            # Show the Retrieved Evidence
+            st.write("**🔎 Student's Retrieved Evidence:**")
             vectors = challenge.get('retrieved_vectors', [])
             if vectors:
                 for v_idx, vec in enumerate(vectors):
-                    st.info(f"**Match {v_idx+1}:** {vec}")
+                    st.caption(f"*Match {v_idx+1}:* {vec}")
             else:
                 st.warning("The Student Agent could not find any mathematically relevant chunks.")
             
+            # Show the Original Source
             st.write("**🟩 Original Source Memory Fragment:**")
-            st.caption(challenge.get('source_chunk', 'N/A'))
+            st.text(challenge.get('source_chunk', 'N/A'))

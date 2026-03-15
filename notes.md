@@ -1,18 +1,15 @@
-### The Student Agent (no llm invoked, purely technical retreival code)
+============================================================
+DAY 5: THE JUDGE AGENT & ADVERSARIAL PIPELINE
+============================================================
 
-**Goal:** Prove the website's mathematical embedding is clean enough for an AI to navigate without human intervention.
+### The Judge Agent (Deterministic LLM Evaluation)
+
+**Goal:** Automate the grading of the Student Agent's retrieved vectors to prove if a website's semantic structure is citation-viable.
 **Status:** ✅ Complete & Tested.
 
-**Architectural Decisions:**
+**Architectural Decisions & Trade-offs:**
 
-1. **No LLM Generation for the Student:** We explicitly decided _not_ to use Gemini to generate the Student's answer. Instead, the Student Agent acts purely as a semantic retriever.
-2. **Cosine Similarity Search:** The Student takes the Teacher's synthetic question and maps it against the local ChromaDB vector space to find the top 3 closest chunks in meaning.
-3. **Zero Context Dilution:** In testing, the Student successfully retrieved the exact 100% matching `Original Source Memory Fragment` that the Teacher used to create the question. This proves the `all-MiniLM-L6-v2` embedding model is working perfectly on the local hardware.
-
-**Files Created/Modified:**
-
-- `agents/student_agent.py`: Created the `search_vector_space` function.
-- `services/audit_service.py`: Wired the Student to receive the Teacher's question and query the database.
-- `ui/metrics_view.py`: Updated the `render_teacher_challenges` UI to display the Student's retrieved evidence (Match 1, 2, 3) alongside the Teacher's Ground Truth.
-
-**Next Step:** Build the **Judge Agent**. It will ingest the Question, Ground Truth, and Retrieved Evidence to output a strict binary `[YES/NO]` verdict, fully automating the audit.
+1. **Temperature 0.0 for Strict Grading:** The Judge relies on Gemini 2.5 Flash via LangChain. We explicitly locked the temperature at 0.0. The Judge is not allowed to generate conversational text; it must output a strict binary `[YES]` or `[NO]`. This ensures the audit is mathematically deterministic rather than probabilistic.
+2. **The 3-State Logic Patch (Error Handling):** Initially, API drops caused the Judge to default to `NO`, which created False Negatives (blaming the website for a Wi-Fi drop). We introduced an `ERROR` state. If the API fails, the pipeline catches the exception and flags an API error, preserving the purity of the website's semantic score.
+3. **Chunking Fidelity (top_k=3):** We consciously decided to keep the Student Agent's retrieval at `top_k=3` instead of `top_k=1`.
+   - _Why:_ Real-world LLMs (like Perplexity or ChatGPT) synthesize multiple paragraphs to build context. `top_k=3` (retrieving ~1500 characters) accurately mimics this context window.
